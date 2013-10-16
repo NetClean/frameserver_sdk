@@ -48,11 +48,20 @@ void ncv_ctx_destroy(ncv_context** ctx)
 
 ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_hegiht, void** out_frame)
 {
+	const char msg[] = "ready";
+	shmipc_error serr = shmipc_send_message(ctx->write_queue, "status", msg, sizeof(msg), timeout); 
+
+	if(serr != SHMIPC_ERR_TIMEOUT && serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	if(serr == SHMIPC_ERR_TIMEOUT)
+		return NCV_ERR_TIMEOUT;
+
 	char type[SHMIPC_MESSAGE_TYPE_LENGTH];
 	char message[shmipc_get_message_max_length(ctx->read_queue)];
 	size_t size;
 	
-	shmipc_error serr = shmipc_recv_message(ctx->read_queue, type, message, &size, timeout);
+	serr = shmipc_recv_message(ctx->read_queue, type, message, &size, timeout);
 
 	if(serr != SHMIPC_ERR_TIMEOUT && serr != SHMIPC_ERR_SUCCESS)
 		return NCV_ERR_SHM;
@@ -63,11 +72,11 @@ ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int*
 	if(strcmp(type, "cmd") != 0)
 		return NCV_ERR_UNKNOWN_MSG;
 	
-	if(strcmp(message, "quit") != 0)
+	if(!strcmp(message, "quit"))
 		return NCV_ERR_HOST_QUIT;
 	
-	if(strcmp(message, "newframe") != 0)
-		return NCV_ERR_HOST_QUIT;
+	if(!strcmp(message, "newframe"))
+		return NCV_ERR_SUCCESS;
 
 	return NCV_ERR_UNKNOWN_MSG;
 }

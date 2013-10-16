@@ -23,6 +23,8 @@ int main(int argc, char** argv)
 	while((err = ncv_wait_for_frame(ctx, -1, &width, &height, (void**)&frame)) == NCV_ERR_SUCCESS){
 		printf("frame!\n");
 	}
+
+	printf("quitting\n");
 	
 	ncv_ctx_destroy(&ctx);
 
