@@ -31,9 +31,9 @@ typedef enum {
 
 typedef struct ncv_context ncv_context;
 
-NCV_APIENTRY ncv_error ncv_ctx_create(const char* shm_name, ncv_context** out_context);
+NCV_APIENTRY ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name, ncv_context** out_context);
 NCV_APIENTRY void ncv_ctx_destroy(ncv_context** ctx);
-NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_hegiht, void** out_frame);
+NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_height, void** out_frame);
 
 #ifdef __cplusplus
 }

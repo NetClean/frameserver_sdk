@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <libshmipc.h>
 
@@ -11,9 +12,11 @@
 struct ncv_context
 {
 	shmipc* read_queue, *write_queue;
+	shmhandle* frame_shm;
+	const void* shm_area;
 };
 
-ncv_error ncv_ctx_create(const char* shm_name, ncv_context** out_context)
+ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name, ncv_context** out_context)
 {
 	ncv_error ret = NCV_ERR_UNKNOWN;
 
@@ -21,13 +24,17 @@ ncv_error ncv_ctx_create(const char* shm_name, ncv_context** out_context)
 	NCV_ASSERT_CLEANUP(ctx, NCV_ERR_ALLOC, "context allocation failed");
 
 	char name_host_writer[512];
-	snprintf(name_host_writer, sizeof(name_host_writer), "%s_host_writer", shm_name);
+	snprintf(name_host_writer, sizeof(name_host_writer), "%s_host_writer", shm_queue_name);
 
-	shmipc_error serr = shmipc_open(shm_name, SHMIPC_AM_WRITE, &ctx->write_queue);
+	shmipc_error serr = shmipc_open(shm_queue_name, SHMIPC_AM_WRITE, &ctx->write_queue);
 	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open write_queue: %d", serr);
 	
 	serr = shmipc_open(name_host_writer, SHMIPC_AM_READ, &ctx->read_queue);
 	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open read_queue: %d", serr);
+
+	size_t shmsize;
+	serr = shmipc_open_shm_ro(shm_frame_name, &shmsize, &ctx->shm_area, &ctx->frame_shm);
+	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open shm_area: %d", serr);
 
 	*out_context = ctx;
 
@@ -46,7 +53,7 @@ void ncv_ctx_destroy(ncv_context** ctx)
 	*ctx = NULL;
 }
 
-ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_hegiht, void** out_frame)
+ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_height, void** out_frame)
 {
 	const char msg[] = "ready";
 	shmipc_error serr = shmipc_send_message(ctx->write_queue, "status", msg, sizeof(msg), timeout); 
@@ -75,8 +82,13 @@ ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int*
 	if(!strcmp(message, "quit"))
 		return NCV_ERR_HOST_QUIT;
 	
-	if(!strcmp(message, "newframe"))
+	if(!strcmp(message, "newframe")){
+		*out_width = *((uint32_t*)ctx->shm_area);
+		*out_height = *(((uint32_t*)ctx->shm_area) + 1);
+		*out_frame = ((char*)ctx->shm_area + 4096);
+
 		return NCV_ERR_SUCCESS;
+	}
 
 	return NCV_ERR_UNKNOWN_MSG;
 }
