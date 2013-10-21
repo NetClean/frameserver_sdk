@@ -92,3 +92,27 @@ ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int*
 
 	return NCV_ERR_UNKNOWN_MSG;
 }
+
+ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size)
+{
+	if(shmipc_get_message_max_length(ctx->write_queue) < size)
+		return NCV_ERR_RESULT_TOO_LONG;
+
+	char* buffer;
+	shmipc_error serr = shmipc_acquire_buffer_w(ctx->write_queue, &buffer, timeout);
+
+	if(serr == SHMIPC_ERR_TIMEOUT)
+		return NCV_ERR_TIMEOUT;
+
+	if(serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	memcpy(buffer, data, size);
+	
+	serr = shmipc_return_buffer_w(ctx->write_queue, &buffer, size, "result");
+
+	if(serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	return NCV_ERR_SUCCESS;
+}
