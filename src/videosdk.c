@@ -109,7 +109,7 @@ ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t si
 
 	memcpy(buffer, data, size);
 	
-	serr = shmipc_return_buffer_w(ctx->write_queue, &buffer, size, "result");
+	serr = shmipc_return_buffer_w(ctx->write_queue, &buffer, size, "results");
 
 	if(serr != SHMIPC_ERR_SUCCESS)
 		return NCV_ERR_SHM;
