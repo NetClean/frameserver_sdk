@@ -32,6 +32,7 @@ typedef enum {
 	NCV_ERR_HOST_QUIT = 5,
 	NCV_ERR_UNKNOWN_MSG = 6,
 	NCV_ERR_RESULT_TOO_LONG = 7,
+	NCV_ERR_PARSING_ARGS = 8,
 } ncv_error;
 
 typedef struct ncv_context ncv_context;
@@ -40,6 +41,7 @@ NCV_APIENTRY ncv_error ncv_ctx_create(const char* shm_queue_name, const char* sh
 NCV_APIENTRY void ncv_ctx_destroy(ncv_context** ctx);
 NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_height, void** out_frame);
 NCV_APIENTRY ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size);
+NCV_APIENTRY ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args);
 
 #ifdef __cplusplus
 }

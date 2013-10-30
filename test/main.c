@@ -21,7 +21,12 @@ int main(int argc, char** argv)
 	int width = 0, height = 0;
 	uint8_t* frame = NULL;
 
-	int i = 0;	
+	
+	const char* const* const* args;
+	int num_args = 0;
+
+	ncv_get_args(ctx, &num_args, &args);
+	int i = 0;
 
 	while((err = ncv_wait_for_frame(ctx, NCV_INFINITE, &width, &height, (void**)&frame)) == NCV_ERR_SUCCESS){
 		printf("frame, %d x %d!\n", width, height);
@@ -41,6 +46,11 @@ int main(int argc, char** argv)
 		printf("failed to report result\n");
 	}else{
 		printf("sent result\n");
+	}
+
+	printf("num args: %d\n", num_args);
+	for(int j = 0; j < num_args; j++){
+		printf("argument: %s: %s\n", args[j][0], args[j][1]);
 	}
 
 	ncv_ctx_destroy(&ctx);
