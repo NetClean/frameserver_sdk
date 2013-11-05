@@ -102,10 +102,16 @@ void ncv_ctx_destroy(ncv_context** ctx)
 	*ctx = NULL;
 }
 
-NCV_APIENTRY ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args)
+ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args)
 {
 	*out_args = (const char* const* const*)ctx->args;
 	*out_num_args = ctx->num_args;
+	return NCV_ERR_SUCCESS;
+}
+
+ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
+{
+	*out_num_frames = *(((uint32_t*)ctx->shm_area) + 2);
 	return NCV_ERR_SUCCESS;
 }
 

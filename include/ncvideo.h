@@ -42,6 +42,7 @@ NCV_APIENTRY void ncv_ctx_destroy(ncv_context** ctx);
 NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_height, void** out_frame);
 NCV_APIENTRY ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size);
 NCV_APIENTRY ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args);
+NCV_APIENTRY ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames);
 
 #ifdef __cplusplus
 }
