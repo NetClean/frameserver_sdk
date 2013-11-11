@@ -155,6 +155,18 @@ ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int*
 	return NCV_ERR_UNKNOWN_MSG;
 }
 
+ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size)
+{
+	char buffer[SHMIPC_MESSAGE_TYPE_LENGTH] = {0};
+	snprintf(buffer, sizeof(buffer), "error %d", err_code);
+	shmipc_error serr = shmipc_send_message(ctx->write_queue, buffer, err_str, size, SHMIPC_INFINITE);
+
+	if(serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	return NCV_ERR_SUCCESS;
+}
+
 ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size)
 {
 	if(shmipc_get_message_max_length(ctx->write_queue) < size)

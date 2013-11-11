@@ -43,6 +43,7 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* ou
 NCV_APIENTRY ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size);
 NCV_APIENTRY ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args);
 NCV_APIENTRY ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames);
+NCV_APIENTRY ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size);
 
 #ifdef __cplusplus
 }

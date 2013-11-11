@@ -4,19 +4,20 @@
 #include <stdint.h>
 #include <string.h>
 
-#define ASSERT_MSG(_v, ...) if(!(_v)){ printf(__VA_ARGS__); puts(""); exit(1); }
+#define ASSERT_MSG(_v, _ctx, ...) if(!(_v)){ char _tb[512]; int _el = snprintf(_tb, sizeof(_tb), __VA_ARGS__); \
+	puts(_tb); if(_ctx){ ncv_report_error(_ctx, 1, _tb, _el); } exit(1); }
 
 int main(int argc, char** argv)
 {
 	ncv_context* ctx;
 
 	printf("hello\n");
-	ASSERT_MSG(argc == 3, "usage: %s [message queue name] [frame data name]", argv[0]);
+	ASSERT_MSG(argc == 3, NULL, "usage: %s [message queue name] [frame data name]", argv[0]);
 
 	printf("shm: %s\n", argv[1]);
 
 	ncv_error err = ncv_ctx_create(argv[1], argv[2], &ctx);
-	ASSERT_MSG(err == NCV_ERR_SUCCESS, "could not create context: %d", err);
+	ASSERT_MSG(err == NCV_ERR_SUCCESS, NULL, "could not create context: %d", err);
 
 	int width = 0, height = 0;
 	uint8_t* frame = NULL;
@@ -30,11 +31,6 @@ int main(int argc, char** argv)
 
 	while((err = ncv_wait_for_frame(ctx, NCV_INFINITE, &width, &height, (void**)&frame)) == NCV_ERR_SUCCESS){
 		printf("frame, %d x %d!\n", width, height);
-		/*if(i == 100){
-			FILE* f = fopen("image.raw", "wb");
-			fwrite(frame, width * height * 3, 1, f);
-			fclose(f);
-		}*/
 		i++;
 	}
 
