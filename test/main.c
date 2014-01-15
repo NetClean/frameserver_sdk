@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define ASSERT_MSG(_v, _ctx, ...) if(!(_v)){ char _tb[512]; int _el = snprintf(_tb, sizeof(_tb), __VA_ARGS__); \
 	puts(_tb); if(_ctx){ ncv_report_error(_ctx, 1, _tb, _el); } exit(1); }
@@ -19,9 +20,7 @@ int main(int argc, char** argv)
 	ncv_error err = ncv_ctx_create(argv[1], argv[2], &ctx);
 	ASSERT_MSG(err == NCV_ERR_SUCCESS, NULL, "could not create context: %d", err);
 
-	int width = 0, height = 0;
-	uint8_t* frame = NULL;
-
+	const ncv_frame* frame = NULL;
 	
 	const char* const* const* args;
 	int num_args = 0;
@@ -29,8 +28,9 @@ int main(int argc, char** argv)
 	ncv_get_args(ctx, &num_args, &args);
 	int i = 0;
 
-	while((err = ncv_wait_for_frame(ctx, NCV_INFINITE, &width, &height, (void**)&frame)) == NCV_ERR_SUCCESS){
-		printf("frame, %d x %d!\n", width, height);
+	while((err = ncv_wait_for_frame(ctx, NCV_INFINITE, &frame)) == NCV_ERR_SUCCESS){
+		printf("frame, %d x %d at pos: %" PRId64 ", flags: %u!\n", ncv_frame_get_width(frame), 
+			ncv_frame_get_height(frame), ncv_frame_get_byte_pos(frame), ncv_frame_get_flags(frame));
 		i++;
 	}
 

@@ -10,6 +10,14 @@
 
 #define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; printf(__VA_ARGS__); puts(""); goto cleanup; }
 
+struct ncv_frame
+{
+	int width, height;
+	uint32_t flags;
+	const void* buffer;
+	int64_t byte_pos;
+};
+
 struct ncv_context
 {
 	shmipc* read_queue, *write_queue;
@@ -17,6 +25,8 @@ struct ncv_context
 	const void* shm_area;
 	char*** args;
 	int num_args;
+
+	ncv_frame frame;
 };
 
 bool parse_args(shmipc* read_queue, int* out_num_args, char**** out_args)
@@ -115,7 +125,7 @@ ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 	return NCV_ERR_SUCCESS;
 }
 
-ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int* out_height, void** out_frame)
+NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const ncv_frame** frame)
 {
 	const char msg[] = "ready";
 	shmipc_error serr = shmipc_send_message(ctx->write_queue, "status", msg, sizeof(msg), timeout); 
@@ -145,9 +155,15 @@ ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, int* out_width, int*
 		return NCV_ERR_HOST_QUIT;
 	
 	if(!strcmp(message, "newframe")){
-		*out_width = *((uint32_t*)ctx->shm_area);
-		*out_height = *(((uint32_t*)ctx->shm_area) + 1);
-		*out_frame = ((char*)ctx->shm_area + 4096);
+		const char* at = ctx->shm_area;
+		ctx->frame.width = *((uint32_t*)(at += sizeof(uint32_t)));
+		ctx->frame.height = *((uint32_t*)(at += sizeof(uint32_t)));
+		ctx->frame.flags = *((uint32_t*)(at += sizeof(uint32_t)));
+		ctx->frame.byte_pos = *((int64_t*)(at += sizeof(int64_t)));
+		
+		ctx->frame.buffer = ((char*)ctx->shm_area + 4096);
+
+		*frame = &ctx->frame;
 
 		return NCV_ERR_SUCCESS;
 	}
@@ -167,7 +183,7 @@ ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, 
 	return NCV_ERR_SUCCESS;
 }
 
-ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t size)
+ncv_error ncv_report_result(ncv_context* ctx, int timeout, const void* data, size_t size)
 {
 	if(shmipc_get_message_max_length(ctx->write_queue) < size)
 		return NCV_ERR_RESULT_TOO_LONG;
@@ -189,4 +205,29 @@ ncv_error ncv_report_result(ncv_context* ctx, int timeout, void* data, size_t si
 		return NCV_ERR_SHM;
 
 	return NCV_ERR_SUCCESS;
+}
+
+int ncv_frame_get_width(const ncv_frame* frame)
+{
+	return frame->width;
+}
+
+int ncv_frame_get_height(const ncv_frame* frame)
+{
+	return frame->height;
+}
+
+unsigned int ncv_frame_get_flags(const ncv_frame* frame)
+{
+	return frame->flags;
+}
+
+long long ncv_frame_get_byte_pos(const ncv_frame* frame)
+{
+	return frame->byte_pos;
+}
+
+const void* ncv_frame_get_buffer(const ncv_frame* frame)
+{
+	return frame->buffer;
 }
