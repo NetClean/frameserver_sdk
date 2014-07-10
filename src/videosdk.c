@@ -15,7 +15,10 @@ struct ncv_frame
 	int width, height;
 	uint32_t flags;
 	const void* buffer;
+
 	int64_t byte_pos;
+	int64_t pts;
+	int64_t dts;
 };
 
 struct ncv_context
@@ -160,6 +163,8 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		ctx->frame.height = *((uint32_t*)(at += sizeof(uint32_t)));
 		ctx->frame.flags = *((uint32_t*)(at += sizeof(uint32_t)));
 		ctx->frame.byte_pos = *((int64_t*)(at += sizeof(int64_t)));
+		ctx->frame.dts = *((int64_t*)(at += sizeof(int64_t)));
+		ctx->frame.pts = *((int64_t*)(at += sizeof(int64_t)));
 		
 		ctx->frame.buffer = ((char*)ctx->shm_area + 4096);
 
@@ -230,4 +235,14 @@ long long ncv_frame_get_byte_pos(const ncv_frame* frame)
 const void* ncv_frame_get_buffer(const ncv_frame* frame)
 {
 	return frame->buffer;
+}
+
+long long ncv_frame_get_dts(const ncv_frame* frame)
+{
+	return frame->dts;
+}
+
+long long ncv_frame_get_pts(const ncv_frame* frame)
+{
+	return frame->pts;
 }

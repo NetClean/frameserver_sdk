@@ -37,6 +37,8 @@ typedef enum {
 
 typedef enum {
 	NCV_FF_KEYFRAME = 1,
+	VX_FF_BYTE_POS_GUESSED = 2,
+	VX_FF_HAS_PTS = 4
 } ncv_frame_flags;
 
 typedef struct ncv_context ncv_context;
@@ -55,6 +57,8 @@ NCV_APIENTRY int ncv_frame_get_height(const ncv_frame* frame);
 NCV_APIENTRY unsigned int ncv_frame_get_flags(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_byte_pos(const ncv_frame* frame);
 NCV_APIENTRY const void* ncv_frame_get_buffer(const ncv_frame* frame);
+NCV_APIENTRY long long ncv_frame_get_dts(const ncv_frame* frame);
+NCV_APIENTRY long long ncv_frame_get_pts(const ncv_frame* frame);
 
 #ifdef __cplusplus
 }
