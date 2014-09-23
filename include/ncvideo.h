@@ -33,6 +33,8 @@ typedef enum {
 	NCV_ERR_UNKNOWN_MSG = 6,
 	NCV_ERR_RESULT_TOO_LONG = 7,
 	NCV_ERR_PARSING_ARGS = 8,
+	NCV_ERR_TARGET_NOT_WRITABLE = 9,
+	NCV_ERR_COULD_NOT_OPEN_FILE = 10,
 } ncv_error;
 
 typedef enum {
@@ -40,6 +42,11 @@ typedef enum {
 	VX_FF_BYTE_POS_GUESSED = 2,
 	VX_FF_HAS_PTS = 4
 } ncv_frame_flags;
+
+typedef enum {
+	NCV_SA_HIGHEST_QUALITY_AVAILABLE,
+	NCV_SA_NEAREST_NEIGHBOR,
+} ncv_scaling_algorithm;
 
 typedef struct ncv_context ncv_context;
 typedef struct ncv_frame ncv_frame;
@@ -57,8 +64,18 @@ NCV_APIENTRY int ncv_frame_get_height(const ncv_frame* frame);
 NCV_APIENTRY unsigned int ncv_frame_get_flags(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_byte_pos(const ncv_frame* frame);
 NCV_APIENTRY const void* ncv_frame_get_buffer(const ncv_frame* frame);
+NCV_APIENTRY void* ncv_frame_get_buffer_rw(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_dts(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_pts(const ncv_frame* frame);
+
+NCV_APIENTRY ncv_frame* ncv_frame_create(int width, int height);
+NCV_APIENTRY void ncv_frame_destroy(ncv_frame* frame);
+
+NCV_APIENTRY ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int x, int y, 
+	int width, int height, ncv_scaling_algorithm algorithm);
+
+NCV_APIENTRY int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer);
+NCV_APIENTRY ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path);
 
 #ifdef __cplusplus
 }

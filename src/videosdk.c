@@ -14,7 +14,8 @@ struct ncv_frame
 {
 	int width, height;
 	uint32_t flags;
-	const void* buffer;
+	const uint8_t* buffer;
+	uint8_t* rw_buffer;
 
 	int64_t byte_pos;
 	int64_t pts;
@@ -166,7 +167,7 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		ctx->frame.dts = *((int64_t*)(at += sizeof(int64_t)));
 		ctx->frame.pts = *((int64_t*)(at += sizeof(int64_t)));
 		
-		ctx->frame.buffer = ((char*)ctx->shm_area + 4096);
+		ctx->frame.buffer = ((uint8_t*)ctx->shm_area + 4096);
 
 		*frame = &ctx->frame;
 
@@ -237,6 +238,11 @@ const void* ncv_frame_get_buffer(const ncv_frame* frame)
 	return frame->buffer;
 }
 
+void* ncv_frame_get_buffer_rw(const ncv_frame* frame)
+{
+	return frame->rw_buffer;
+}
+
 long long ncv_frame_get_dts(const ncv_frame* frame)
 {
 	return frame->dts;
@@ -245,4 +251,119 @@ long long ncv_frame_get_dts(const ncv_frame* frame)
 long long ncv_frame_get_pts(const ncv_frame* frame)
 {
 	return frame->pts;
+}
+
+ncv_frame* ncv_frame_create(int width, int height)
+{
+	ncv_frame* ret = calloc(1, sizeof(ncv_frame));
+
+	if(!ret)
+		return NULL;
+
+	ret->rw_buffer = calloc(1, width * height * 3); 
+
+	if(!ret->rw_buffer){
+		free(ret);
+		return NULL;
+	}
+
+	ret->buffer = ret->rw_buffer;
+
+	ret->width = width;
+	ret->height = height;	
+
+	return ret;
+}
+
+void ncv_frame_destroy(ncv_frame* frame)
+{
+	if(frame->rw_buffer)
+		free(frame->rw_buffer);
+	free(frame);
+}
+
+ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, int ty, int tw, int th, ncv_scaling_algorithm algorithm)
+{
+	if(!target->rw_buffer)
+		return NCV_ERR_TARGET_NOT_WRITABLE;
+
+	float sx = (float)source->width / (float)tw;
+	float sy = (float)source->height / (float)th;
+	
+	for(int y = 0; y < th; y++){
+		for(int x = 0; x < tw; x++){
+			if(y + ty >= 0 && x + tx >= 0 && x + tx < target->width && y + ty < target->height){
+				const uint8_t* sd = source->buffer + (((int)(x * sx)) + ((int)(y * sy) * source->width)) * 3;
+				uint8_t* td = target->rw_buffer + (x + tx + (y + ty) * target->width) * 3;
+
+				*(td++) = *(sd++);
+				*(td++) = *(sd++);
+				*(td++) = *(sd);
+			}
+		}
+	}
+
+	return NCV_ERR_SUCCESS;
+}
+
+#define TGA_HEADER_SIZE 18
+
+int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
+{
+  char* buffer = calloc(1, frame->width * frame->height * 3 + TGA_HEADER_SIZE);
+  if(!buffer)
+    return 0;
+
+  // uncompressed RGB
+  buffer[2] = 2;
+
+  // width
+  buffer[12] = frame->width & 0xff;
+  buffer[13] = (frame->width >> 8) & 0xff;
+
+  // width
+  buffer[14] = frame->height & 0xff;
+  buffer[15] = (frame->height >> 8) & 0xff;
+
+  // bits per pixel
+  buffer[16] = 24;
+
+  *out_buffer = buffer;
+
+  buffer += TGA_HEADER_SIZE;
+
+  for(int y = frame->height - 1; y >= 0; y--){
+    for(int x = 0; x < frame->width; x++){
+      int i = (x + y * frame->width) * 3;
+
+      *(buffer++) = ((const char*)frame->buffer)[i+0];
+      *(buffer++) = ((const char*)frame->buffer)[i+1];
+      *(buffer++) = ((const char*)frame->buffer)[i+2];
+    }
+  }
+
+  return frame->width * frame->height * 3 + TGA_HEADER_SIZE;
+}
+
+ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path)
+{
+	
+	char* buffer;
+	int size = ncv_frame_save_tga_mem(frame, &buffer);
+
+	if(size == 0)
+		return NCV_ERR_ALLOC;
+
+	FILE* f = fopen(path, "wb");
+
+	if(!f)
+		return NCV_ERR_COULD_NOT_OPEN_FILE;
+	
+	int w = fwrite(buffer, size, 1, f);
+	
+	ncv_error ret = w ? NCV_ERR_SUCCESS : NCV_ERR_COULD_NOT_OPEN_FILE;
+
+	fclose(f);
+
+	return ret;
 }
