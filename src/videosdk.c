@@ -125,7 +125,13 @@ ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* c
 
 ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 {
-	*out_num_frames = *(((uint32_t*)ctx->shm_area) + 2);
+	*out_num_frames = *(((uint32_t*)ctx->shm_area) + 0);
+	return NCV_ERR_SUCCESS;
+}
+
+ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps)
+{
+	*out_fps = *(((float*)ctx->shm_area) + 4);
 	return NCV_ERR_SUCCESS;
 }
 
