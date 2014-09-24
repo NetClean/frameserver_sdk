@@ -51,14 +51,16 @@ typedef enum {
 typedef struct ncv_context ncv_context;
 typedef struct ncv_frame ncv_frame;
 
-NCV_APIENTRY ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name, ncv_context** out_context);
+NCV_APIENTRY ncv_context* ncv_ctx_create();
+NCV_APIENTRY ncv_error ncv_connect(ncv_context* ctx, const char* shm_queue_name, const char* shm_frame_name);
 NCV_APIENTRY void ncv_ctx_destroy(ncv_context** ctx);
 NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const ncv_frame** frame);
 NCV_APIENTRY ncv_error ncv_report_result(ncv_context* ctx, int timeout, const void* data, size_t size);
 NCV_APIENTRY ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* const* * out_args);
 NCV_APIENTRY ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames);
-NCV_APIENTRY ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps);
+NCV_APIENTRY ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed);
 NCV_APIENTRY ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size);
+NCV_APIENTRY const char* ncv_get_last_error_msg(ncv_context* ctx);
 
 NCV_APIENTRY int ncv_frame_get_width(const ncv_frame* frame);
 NCV_APIENTRY int ncv_frame_get_height(const ncv_frame* frame);

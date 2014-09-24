@@ -8,10 +8,11 @@
 
 #include <libshmipc.h>
 
-#define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; printf(__VA_ARGS__); puts(""); goto cleanup; }
+#define NCV_ERROR_MSG_SIZE 2048
+#define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; snprintf(ctx->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__); goto cleanup; }
 
-#pragma pack(push,4)
-typedef struct {
+typedef struct __attribute__ ((packed)) shm_vid_info {
+	uint32_t reserved;
 	uint32_t width;
 	uint32_t height;
 	uint32_t flags;
@@ -21,8 +22,8 @@ typedef struct {
 
 	uint32_t tot_frames;
 	float fps;
+	bool fps_guessed;
 } shm_vid_info;
-#pragma pack(pop)
 
 
 struct ncv_frame
@@ -44,6 +45,8 @@ struct ncv_context
 	const void* shm_area;
 	char*** args;
 	int num_args;
+
+	char error_msg[NCV_ERROR_MSG_SIZE];
 
 	volatile shm_vid_info* info;
 	ncv_frame frame;
@@ -92,12 +95,15 @@ cleanup:
 	return false;
 }
 
-ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name, ncv_context** out_context)
+NCV_APIENTRY ncv_context* ncv_ctx_create()
+{
+	ncv_context* ctx = calloc(1, sizeof(ncv_context));
+	return ctx;
+}
+
+NCV_APIENTRY ncv_error ncv_connect(ncv_context* ctx, const char* shm_queue_name, const char* shm_frame_name)
 {
 	ncv_error ret = NCV_ERR_UNKNOWN;
-
-	ncv_context* ctx = calloc(1, sizeof(ncv_context));
-	NCV_ASSERT_CLEANUP(ctx, NCV_ERR_ALLOC, "context allocation failed");
 
 	char name_host_writer[512];
 	snprintf(name_host_writer, sizeof(name_host_writer), "%s_host_writer", shm_queue_name);
@@ -110,13 +116,12 @@ ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name,
 
 	size_t shmsize;
 	serr = shmipc_open_shm_ro(shm_frame_name, &shmsize, &ctx->shm_area, &ctx->frame_shm);
-	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open shm_area: %d", serr);
+	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open shm_area: %s (%d, %s)", 
+		shm_frame_name, serr, shmipc_get_last_error_msg());
 
 	NCV_ASSERT_CLEANUP(parse_args(ctx->read_queue, &ctx->num_args, &ctx->args), NCV_ERR_PARSING_ARGS, "could not parse arguments");
 
 	ctx->info = (shm_vid_info*)ctx->shm_area;
-
-	*out_context = ctx;
 
 	return NCV_ERR_SUCCESS;
 
@@ -147,9 +152,10 @@ ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 	return NCV_ERR_SUCCESS;
 }
 
-ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps)
+ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed)
 {
 	*out_fps = ctx->info->fps;
+	*out_guessed = (int)ctx->info->fps_guessed;
 	return NCV_ERR_SUCCESS;
 }
 
@@ -234,6 +240,11 @@ ncv_error ncv_report_result(ncv_context* ctx, int timeout, const void* data, siz
 		return NCV_ERR_SHM;
 
 	return NCV_ERR_SUCCESS;
+}
+
+const char* ncv_get_last_error_msg(ncv_context* ctx)
+{
+	return ctx->error_msg;
 }
 
 int ncv_frame_get_width(const ncv_frame* frame)
