@@ -10,6 +10,21 @@
 
 #define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; printf(__VA_ARGS__); puts(""); goto cleanup; }
 
+#pragma pack(push,4)
+typedef struct {
+	uint32_t width;
+	uint32_t height;
+	uint32_t flags;
+	int64_t byte_pos;
+	int64_t pts;
+	int64_t dts;
+
+	uint32_t tot_frames;
+	float fps;
+} shm_vid_info;
+#pragma pack(pop)
+
+
 struct ncv_frame
 {
 	int width, height;
@@ -30,6 +45,7 @@ struct ncv_context
 	char*** args;
 	int num_args;
 
+	volatile shm_vid_info* info;
 	ncv_frame frame;
 };
 
@@ -98,6 +114,8 @@ ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name,
 
 	NCV_ASSERT_CLEANUP(parse_args(ctx->read_queue, &ctx->num_args, &ctx->args), NCV_ERR_PARSING_ARGS, "could not parse arguments");
 
+	ctx->info = (shm_vid_info*)ctx->shm_area;
+
 	*out_context = ctx;
 
 	return NCV_ERR_SUCCESS;
@@ -125,13 +143,13 @@ ncv_error ncv_get_args(ncv_context* ctx, int* out_num_args, const char* const* c
 
 ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 {
-	*out_num_frames = *(((uint32_t*)ctx->shm_area) + 0);
+	*out_num_frames = ctx->info->tot_frames;
 	return NCV_ERR_SUCCESS;
 }
 
 ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps)
 {
-	*out_fps = *(((float*)ctx->shm_area) + 4);
+	*out_fps = ctx->info->fps;
 	return NCV_ERR_SUCCESS;
 }
 
@@ -165,13 +183,12 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		return NCV_ERR_HOST_QUIT;
 	
 	if(!strcmp(message, "newframe")){
-		const char* at = ctx->shm_area;
-		ctx->frame.width = *((uint32_t*)(at += sizeof(uint32_t)));
-		ctx->frame.height = *((uint32_t*)(at += sizeof(uint32_t)));
-		ctx->frame.flags = *((uint32_t*)(at += sizeof(uint32_t)));
-		ctx->frame.byte_pos = *((int64_t*)(at += sizeof(int64_t)));
-		ctx->frame.dts = *((int64_t*)(at += sizeof(int64_t)));
-		ctx->frame.pts = *((int64_t*)(at += sizeof(int64_t)));
+		ctx->frame.width = ctx->info->width;
+		ctx->frame.height = ctx->info->height;
+		ctx->frame.flags = ctx->info->flags;
+		ctx->frame.byte_pos = ctx->info->byte_pos;
+		ctx->frame.dts = ctx->info->dts;
+		ctx->frame.pts = ctx->info->pts;
 		
 		ctx->frame.buffer = ((uint8_t*)ctx->shm_area + 4096);
 
