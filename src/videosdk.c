@@ -1,53 +1,6 @@
-#include "ncvideo.h"
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-#include <libshmipc.h>
+#include "videoint.h"
 
 #define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; printf(__VA_ARGS__); puts(""); goto cleanup; }
-
-#pragma pack(push,4)
-typedef struct {
-	uint32_t width;
-	uint32_t height;
-	uint32_t flags;
-	int64_t byte_pos;
-	int64_t pts;
-	int64_t dts;
-
-	uint32_t tot_frames;
-	float fps;
-} shm_vid_info;
-#pragma pack(pop)
-
-
-struct ncv_frame
-{
-	int width, height;
-	uint32_t flags;
-	const uint8_t* buffer;
-	uint8_t* rw_buffer;
-
-	int64_t byte_pos;
-	int64_t pts;
-	int64_t dts;
-};
-
-struct ncv_context
-{
-	shmipc* read_queue, *write_queue;
-	shmhandle* frame_shm;
-	const void* shm_area;
-	char*** args;
-	int num_args;
-
-	volatile shm_vid_info* info;
-	ncv_frame frame;
-};
 
 bool parse_args(shmipc* read_queue, int* out_num_args, char**** out_args)
 {
@@ -310,20 +263,12 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 	if(!target->rw_buffer)
 		return NCV_ERR_TARGET_NOT_WRITABLE;
 
-	float sx = (float)source->width / (float)tw;
-	float sy = (float)source->height / (float)th;
-	
-	for(int y = 0; y < th; y++){
-		for(int x = 0; x < tw; x++){
-			if(y + ty >= 0 && x + tx >= 0 && x + tx < target->width && y + ty < target->height){
-				const uint8_t* sd = source->buffer + (((int)(x * sx)) + ((int)(y * sy) * source->width)) * 3;
-				uint8_t* td = target->rw_buffer + (x + tx + (y + ty) * target->width) * 3;
-
-				*(td++) = *(sd++);
-				*(td++) = *(sd++);
-				*(td++) = *(sd);
-			}
-		}
+	switch(algorithm)
+	{
+		case NCV_SA_HIGHEST_QUALITY_AVAILABLE:
+		case NCV_SA_NEAREST_NEIGHBOR:
+			ncv_frame_scale_nn(source, target, tx, ty, tw, th);
+			break;
 	}
 
 	return NCV_ERR_SUCCESS;
