@@ -1,6 +1,6 @@
 name             unit_tests
 template         c99
-cflags           std=c99 g Wall
+cflags           std=c99 gstabs Wall
 depends          ..
 target_platform  mingw32
 postbuildscript  ./$(target)

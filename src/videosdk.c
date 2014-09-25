@@ -1,6 +1,6 @@
 #include "videoint.h"
 
-#define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; printf(__VA_ARGS__); puts(""); goto cleanup; }
+#define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; snprintf(ctx->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__); goto cleanup; }
 
 bool parse_args(shmipc* read_queue, int* out_num_args, char**** out_args)
 {
@@ -45,12 +45,15 @@ cleanup:
 	return false;
 }
 
-ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name, ncv_context** out_context)
+NCV_APIENTRY ncv_context* ncv_ctx_create()
+{
+	ncv_context* ctx = calloc(1, sizeof(ncv_context));
+	return ctx;
+}
+
+NCV_APIENTRY ncv_error ncv_connect(ncv_context* ctx, const char* shm_queue_name, const char* shm_frame_name)
 {
 	ncv_error ret = NCV_ERR_UNKNOWN;
-
-	ncv_context* ctx = calloc(1, sizeof(ncv_context));
-	NCV_ASSERT_CLEANUP(ctx, NCV_ERR_ALLOC, "context allocation failed");
 
 	char name_host_writer[512];
 	snprintf(name_host_writer, sizeof(name_host_writer), "%s_host_writer", shm_queue_name);
@@ -63,13 +66,12 @@ ncv_error ncv_ctx_create(const char* shm_queue_name, const char* shm_frame_name,
 
 	size_t shmsize;
 	serr = shmipc_open_shm_ro(shm_frame_name, &shmsize, &ctx->shm_area, &ctx->frame_shm);
-	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open shm_area: %d", serr);
+	NCV_ASSERT_CLEANUP(serr == SHMIPC_ERR_SUCCESS, NCV_ERR_SHM, "could not open shm_area: %s (%d, %s)", 
+		shm_frame_name, serr, shmipc_get_last_error_msg());
 
 	NCV_ASSERT_CLEANUP(parse_args(ctx->read_queue, &ctx->num_args, &ctx->args), NCV_ERR_PARSING_ARGS, "could not parse arguments");
 
 	ctx->info = (shm_vid_info*)ctx->shm_area;
-
-	*out_context = ctx;
 
 	return NCV_ERR_SUCCESS;
 
@@ -100,9 +102,10 @@ ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 	return NCV_ERR_SUCCESS;
 }
 
-ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps)
+ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed)
 {
 	*out_fps = ctx->info->fps;
+	*out_guessed = (int)ctx->info->fps_guessed;
 	return NCV_ERR_SUCCESS;
 }
 
@@ -189,6 +192,11 @@ ncv_error ncv_report_result(ncv_context* ctx, int timeout, const void* data, siz
 	return NCV_ERR_SUCCESS;
 }
 
+const char* ncv_get_last_error_msg(ncv_context* ctx)
+{
+	return ctx->error_msg;
+}
+
 int ncv_frame_get_width(const ncv_frame* frame)
 {
 	return frame->width;
@@ -265,9 +273,15 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 	switch(algorithm)
 	{
-		case NCV_SA_HIGHEST_QUALITY_AVAILABLE:
 		case NCV_SA_NEAREST_NEIGHBOR:
-			ncv_frame_scale_nn(source, target, tx, ty, tw, th);
+			if(!ncv_frame_scale_nn(source, target, tx, ty, tw, th))
+				return NCV_ERR_ALLOC;
+			break;
+
+		case NCV_SA_HIGHEST_QUALITY_AVAILABLE:
+		case NCV_SA_BICUBIC:
+			if(!ncv_frame_scale_bicubic(source, target, tx, ty, tw, th))
+				return NCV_ERR_ALLOC;
 			break;
 	}
 

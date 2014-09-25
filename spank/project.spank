@@ -2,8 +2,9 @@ name		videosdk
 
 targettype	lib-shared
 sourcedir	src
-cflags		Iinclude std=c99 g Wall DDLL_EXPORT
+cflags		Iinclude std=c99 gstabs Wall DDLL_EXPORT
 fpic            ""
+ldflags   static static-libgcc
 
 inst_copy	$(target) $(inst_prefix)lib/$(target)
 

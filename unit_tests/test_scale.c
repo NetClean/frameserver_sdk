@@ -7,7 +7,7 @@
 #include "tests.h"
 #include "ncvideo.h"
 
-bool test_scale()
+bool do_scale(ncv_frame_flags alg, const char* path)
 {
 	ncv_frame* f = ncv_frame_create(320, 240);
 	ASSERT_RET(f);
@@ -40,20 +40,31 @@ bool test_scale()
 	height = ncv_frame_get_height(f2);
 	ASSERT_RET(height == 480);
 
-	ncv_error s = ncv_frame_scale(f, f2, 32, 32, 320 * 1.5, 240 * 1.5, NCV_SA_NEAREST_NEIGHBOR);
+	ncv_error s = ncv_frame_scale(f, f2, 32, 32, 320 * 1.5, 240 * 1.5, alg);
 	ASSERT_RET(s == NCV_ERR_SUCCESS);
 	
-	s = ncv_frame_scale(f, f2, 64, 64, 320 * 2, 240 * 2, NCV_SA_NEAREST_NEIGHBOR);
+	s = ncv_frame_scale(f, f2, 64, 64, 320 * 2, 240 * 2, alg);
 	ASSERT_RET(s == NCV_ERR_SUCCESS);
 	
-	s = ncv_frame_scale(f, f2, -120, -30, 320 * 2, 240 * 2, NCV_SA_NEAREST_NEIGHBOR);
+	s = ncv_frame_scale(f, f2, -120, -30, 320 * 2, 240 * 2, alg);
 	ASSERT_RET(s == NCV_ERR_SUCCESS);
 
-	s = ncv_frame_save_tga_file(f2, "image_scale.tga");
+	s = ncv_frame_save_tga_file(f2, path);
 	ASSERT_RET(s == NCV_ERR_SUCCESS);
 
 	ncv_frame_destroy(f);
 	ncv_frame_destroy(f2);
+	
+	return true;
+}
+
+bool test_scale()
+{
+	if(!do_scale(NCV_SA_NEAREST_NEIGHBOR, "image_scale_nn.tga"))
+		return false;
+	
+	if(!do_scale(NCV_SA_BICUBIC, "image_scale_bicubic.tga"))
+		return false;
 	
 	return true;
 }
