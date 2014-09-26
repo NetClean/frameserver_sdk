@@ -1,18 +1,25 @@
-name		videosdk
+[common]
+name		         videosdk
 
-targettype	lib-shared
-sourcedir	src
-cflags		Iinclude std=c99 gstabs Wall DDLL_EXPORT
-fpic            ""
-ldflags   static static-libgcc
+targettype	     lib-shared
+sourcedir	       src
+cflags		       Iinclude std=c99 Wall DDLL_EXPORT
+ldflags          static static-libgcc
+fpic             ""
 
-inst_copy	$(target) $(inst_prefix)lib/$(target)
+inst_copy	       $(target) $(inst_prefix)lib/$(target)
 
-inst_mkdir	$(inst_prefix)/include/$(name)
-inst_copy	include/$(name).h $(inst_prefix)/include/$(name)
+inst_mkdir	     $(inst_prefix)/include/$(name)
+inst_copy	       include/$(name).h $(inst_prefix)/include/$(name)
 
-inst_copy	pkg-config/$(name).pc $(inst_prefix)lib/pkgconfig/$(name).pc
+inst_copy	       pkg-config/$(name).pc $(inst_prefix)lib/pkgconfig/$(name).pc
 
-lib             libshmipc
+lib              libshmipc
 
-target_platform mingw32
+target_platform  mingw32
+
+[*debug: common]
+cflags gstabs
+
+[release: common]
+cflags O3

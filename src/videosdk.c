@@ -303,7 +303,7 @@ int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
   buffer[12] = frame->width & 0xff;
   buffer[13] = (frame->width >> 8) & 0xff;
 
-  // width
+  // height
   buffer[14] = frame->height & 0xff;
   buffer[15] = (frame->height >> 8) & 0xff;
 
@@ -318,9 +318,9 @@ int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
     for(int x = 0; x < frame->width; x++){
       int i = (x + y * frame->width) * 3;
 
-      *(buffer++) = ((const char*)frame->buffer)[i+0];
-      *(buffer++) = ((const char*)frame->buffer)[i+1];
       *(buffer++) = ((const char*)frame->buffer)[i+2];
+      *(buffer++) = ((const char*)frame->buffer)[i+1];
+      *(buffer++) = ((const char*)frame->buffer)[i+0];
     }
   }
 
@@ -343,7 +343,7 @@ ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path)
 	
 	int w = fwrite(buffer, size, 1, f);
 	
-	ncv_error ret = w ? NCV_ERR_SUCCESS : NCV_ERR_COULD_NOT_OPEN_FILE;
+	ncv_error ret = w ? NCV_ERR_SUCCESS : NCV_ERR_COULD_NOT_WRITE_TO_FILE;
 
 	fclose(f);
 

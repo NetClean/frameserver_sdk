@@ -35,6 +35,7 @@ typedef enum {
 	NCV_ERR_PARSING_ARGS = 8,
 	NCV_ERR_TARGET_NOT_WRITABLE = 9,
 	NCV_ERR_COULD_NOT_OPEN_FILE = 10,
+	NCV_ERR_COULD_NOT_WRITE_TO_FILE = 11,
 } ncv_error;
 
 typedef enum {
