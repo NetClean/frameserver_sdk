@@ -19,10 +19,10 @@ lib              libshmipc
 target_platform  mingw32
 
 [debug_force_dynamic: debug]
-dep_ldflags      "Wl,-Bdynamic -L$(projectpath) -l$(name) -Wl,-Bstatic"
+dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
 
 [release_force_dynamic: release]
-dep_ldflags      "Wl,-Bdynamic -L$(projectpath) -l$(name) -Wl,-Bstatic"
+dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
 
 [*debug: common]
 cflags gstabs
