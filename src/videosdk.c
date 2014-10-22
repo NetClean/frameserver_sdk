@@ -1,5 +1,6 @@
 #include "videoint.h"
 
+#define NCV_PRINT_ERROR(_ctx, ...) snprintf((_ctx)->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__);
 #define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; snprintf(ctx->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__); goto cleanup; }
 
 bool parse_args(shmipc* read_queue, int* out_num_args, char**** out_args)
@@ -132,8 +133,10 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 	if(serr == SHMIPC_ERR_TIMEOUT)
 		return NCV_ERR_TIMEOUT;
 
-	if(strcmp(type, "cmd") != 0)
+	if(strcmp(type, "cmd") != 0){
+		NCV_PRINT_ERROR(ctx, "unexpected message type from frameserver: '%s'", type);
 		return NCV_ERR_UNKNOWN_MSG;
+	}
 	
 	if(!strcmp(message, "quit"))
 		return NCV_ERR_HOST_QUIT;
@@ -153,6 +156,7 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		return NCV_ERR_SUCCESS;
 	}
 
+	NCV_PRINT_ERROR(ctx, "unexpected message from frameserver: type: '%s', msg: '%s'", type, message);
 	return NCV_ERR_UNKNOWN_MSG;
 }
 
