@@ -14,8 +14,6 @@ inst_copy	       include/$(name).h $(inst_prefix)/include/$(name)
 
 inst_copy	       pkg-config/$(name).pc $(inst_prefix)lib/pkgconfig/$(name).pc
 
-lib              libshmipc
-
 target_platform  mingw32
 
 [debug_force_dynamic: debug]
@@ -25,7 +23,9 @@ dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
 
 [*debug: common]
-cflags gstabs
+cflags           gstabs
+depends          libshmipc
 
 [release: common]
-cflags O3
+cflags           O3
+depends          libshmipc
