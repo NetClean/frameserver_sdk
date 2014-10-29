@@ -10,15 +10,18 @@
 
 int main(int argc, char** argv)
 {
-	ncv_context* ctx;
+	ncv_context* ctx = NULL;
 
 	printf("hello\n");
 	ASSERT_MSG(argc == 3, NULL, "usage: %s [message queue name] [frame data name]", argv[0]);
 
 	printf("shm: %s\n", argv[1]);
 
-	ncv_error err = ncv_ctx_create(argv[1], argv[2], &ctx);
-	ASSERT_MSG(err == NCV_ERR_SUCCESS, NULL, "could not create context: %d", err);
+	ctx = ncv_ctx_create();
+	ASSERT_MSG(ctx, NULL, "could not create context");
+
+	ncv_error err = ncv_connect(ctx, argv[1], argv[2]);
+	ASSERT_MSG(err == NCV_ERR_SUCCESS, NULL, "could not connect: %d", err);
 
 	const ncv_frame* frame = NULL;
 	
@@ -48,6 +51,9 @@ int main(int argc, char** argv)
 	for(int j = 0; j < num_args; j++){
 		printf("argument: %s: %s\n", args[j][0], args[j][1]);
 	}
+
+	err = ncv_report_finished(ctx, NCV_INFINITE);
+	ASSERT_MSG(err == NCV_ERR_SUCCESS, ctx, "error reporting finished: %d", err);
 
 	ncv_ctx_destroy(&ctx);
 	

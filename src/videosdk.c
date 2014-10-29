@@ -110,6 +110,8 @@ ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed)
 	return NCV_ERR_SUCCESS;
 }
 
+
+
 NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const ncv_frame** frame)
 {
 	const char msg[] = "ready";
@@ -138,8 +140,13 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		return NCV_ERR_UNKNOWN_MSG;
 	}
 	
-	if(!strcmp(message, "quit"))
-		return NCV_ERR_HOST_QUIT;
+	if(!strcmp(message, "quit")){
+		NCV_PRINT_ERROR(ctx, "unexpected message type from frameserver: '%s' (unexpected at this time)", message);
+		return NCV_ERR_UNKNOWN_MSG;
+	}
+	
+	if(!strcmp(message, "endsession"))
+		return NCV_ERR_HOST_END_SESSION;
 	
 	if(!strcmp(message, "newframe")){
 		ctx->frame.width = ctx->info->width;
@@ -170,6 +177,45 @@ ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, 
 		return NCV_ERR_SHM;
 
 	return NCV_ERR_SUCCESS;
+}
+
+ncv_error ncv_report_finished(ncv_context* ctx, int timeout)
+{
+	const char msg[] = "finished";
+	shmipc_error serr = shmipc_send_message(ctx->write_queue, "status", msg, sizeof(msg), timeout); 
+
+	if(serr != SHMIPC_ERR_TIMEOUT && serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	if(serr == SHMIPC_ERR_TIMEOUT)
+		return NCV_ERR_TIMEOUT;
+
+	char type[SHMIPC_MESSAGE_TYPE_LENGTH];
+	char message[shmipc_get_message_max_length(ctx->read_queue)];
+	size_t size;
+	
+	serr = shmipc_recv_message(ctx->read_queue, type, message, &size, timeout);
+
+	if(serr != SHMIPC_ERR_TIMEOUT && serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+
+	if(serr == SHMIPC_ERR_TIMEOUT)
+		return NCV_ERR_TIMEOUT;
+
+	if(strcmp(type, "cmd") != 0){
+		NCV_PRINT_ERROR(ctx, "unexpected message type from frameserver: '%s'", type);
+		return NCV_ERR_UNKNOWN_MSG;
+	}
+
+	if(serr != SHMIPC_ERR_SUCCESS)
+		return NCV_ERR_SHM;
+	
+	if(!strcmp(message, "quit")){
+		return NCV_ERR_SUCCESS;
+	}
+		
+	NCV_PRINT_ERROR(ctx, "unexpected message type from frameserver: '%s' (unexpected at this time)", message);
+	return NCV_ERR_UNKNOWN_MSG;
 }
 
 ncv_error ncv_report_result(ncv_context* ctx, int timeout, const void* data, size_t size)

@@ -1,5 +1,5 @@
 name             ncvideotest
 template         c99
-ldflags          L.. lvideosdk
+depends          ..
 cflags           std=c99 I../include g Wall
 target_platform  mingw32

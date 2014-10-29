@@ -29,7 +29,7 @@ typedef enum {
 	NCV_ERR_ALLOC = 2,
 	NCV_ERR_SHM = 3,
 	NCV_ERR_TIMEOUT = 4,
-	NCV_ERR_HOST_QUIT = 5,
+	NCV_ERR_HOST_END_SESSION = 5,
 	NCV_ERR_UNKNOWN_MSG = 6,
 	NCV_ERR_RESULT_TOO_LONG = 7,
 	NCV_ERR_PARSING_ARGS = 8,
@@ -63,6 +63,8 @@ NCV_APIENTRY ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 NCV_APIENTRY ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed);
 NCV_APIENTRY ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size);
 NCV_APIENTRY const char* ncv_get_last_error_msg(ncv_context* ctx);
+
+NCV_APIENTRY ncv_error ncv_report_finished(ncv_context* ctx, int timeout);
 
 NCV_APIENTRY int ncv_frame_get_width(const ncv_frame* frame);
 NCV_APIENTRY int ncv_frame_get_height(const ncv_frame* frame);
