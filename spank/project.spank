@@ -14,6 +14,8 @@ inst_copy	       include/$(name).h $(inst_prefix)/include/$(name)
 
 inst_copy	       pkg-config/$(name).pc $(inst_prefix)lib/pkgconfig/$(name).pc
 
+lib-static       libswscale
+
 target_platform  mingw32
 
 [debug_force_dynamic: debug]
@@ -29,3 +31,4 @@ depends          libshmipc
 [release: common]
 cflags           O3
 depends          libshmipc
+postbuildscript  "$(host_dash)strip $(target)"

@@ -44,10 +44,22 @@ typedef enum {
 	VX_FF_HAS_PTS = 4
 } ncv_frame_flags;
 
+// maps to libswscale
 typedef enum {
-	NCV_SA_HIGHEST_QUALITY_AVAILABLE,
-	NCV_SA_NEAREST_NEIGHBOR,
-	NCV_SA_BICUBIC,
+	NCV_SA_RECOMMENDED = 0,
+
+	NCV_SA_FAST_BILINEAR = 1,
+	NCV_SA_BILINEAR = 2,
+	NCV_SA_BICUBIC = 4,
+	NCV_SA_X = 8,
+	NCV_SA_POINT = 0x10,
+	NCV_SA_AREA = 0x20,
+	NCV_SA_BICUBLIN = 0x40,
+	NCV_SA_GAUSS = 0x80,
+	NCV_SA_SINC = 0x100,
+	NCV_SA_LANCZOS = 0x200,
+	NCV_SA_SPLINE = 0x400
+
 } ncv_scaling_algorithm;
 
 typedef struct ncv_context ncv_context;

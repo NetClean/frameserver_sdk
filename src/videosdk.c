@@ -1,4 +1,57 @@
-#include "videoint.h"
+#include <assert.h>
+#include <libswscale/swscale.h>
+
+#include "ncvideo.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <libshmipc.h>
+
+#define NCV_ERROR_MSG_SIZE 2048
+
+typedef struct __attribute__ ((packed)) shm_vid_info {
+	uint32_t reserved;
+	uint32_t width;
+	uint32_t height;
+	uint32_t flags;
+	int64_t byte_pos;
+	int64_t pts;
+	int64_t dts;
+
+	uint32_t tot_frames;
+	float fps;
+	bool fps_guessed;
+} shm_vid_info;
+
+
+struct ncv_frame
+{
+	int width, height;
+	uint32_t flags;
+	const uint8_t* buffer;
+	uint8_t* rw_buffer;
+
+	int64_t byte_pos;
+	int64_t pts;
+	int64_t dts;
+};
+
+struct ncv_context
+{
+	shmipc* read_queue, *write_queue;
+	shmhandle* frame_shm;
+	const void* shm_area;
+	char*** args;
+	int num_args;
+
+	char error_msg[NCV_ERROR_MSG_SIZE];
+
+	volatile shm_vid_info* info;
+	ncv_frame frame;
+};
 
 #define NCV_PRINT_ERROR(_ctx, ...) snprintf((_ctx)->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__);
 #define NCV_ASSERT_CLEANUP(_v, _e, ...) if(!(_v)){ ret = _e; snprintf(ctx->error_msg, NCV_ERROR_MSG_SIZE, __VA_ARGS__); goto cleanup; }
@@ -289,12 +342,12 @@ long long ncv_frame_get_pts(const ncv_frame* frame)
 
 ncv_frame* ncv_frame_create(int width, int height)
 {
-	ncv_frame* ret = calloc(1, sizeof(ncv_frame));
+	ncv_frame* ret = av_malloc(sizeof(ncv_frame));
 
 	if(!ret)
 		return NULL;
 
-	ret->rw_buffer = calloc(1, width * height * 3); 
+	ret->rw_buffer = av_mallocz(width * height * 3); 
 
 	if(!ret->rw_buffer){
 		free(ret);
@@ -312,7 +365,7 @@ ncv_frame* ncv_frame_create(int width, int height)
 void ncv_frame_destroy(ncv_frame* frame)
 {
 	if(frame->rw_buffer)
-		free(frame->rw_buffer);
+		av_free(frame->rw_buffer);
 	free(frame);
 }
 
@@ -321,19 +374,68 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 	if(!target->rw_buffer)
 		return NCV_ERR_TARGET_NOT_WRITABLE;
 
-	switch(algorithm)
-	{
-		case NCV_SA_NEAREST_NEIGHBOR:
-			if(!ncv_frame_scale_nn(source, target, tx, ty, tw, th))
-				return NCV_ERR_ALLOC;
-			break;
+	struct SwsContext* sws = sws_getContext(
+		// source
+		source->width, source->height, AV_PIX_FMT_RGB24,
 
-		case NCV_SA_HIGHEST_QUALITY_AVAILABLE:
-		case NCV_SA_BICUBIC:
-			if(!ncv_frame_scale_bicubic(source, target, tx, ty, tw, th))
-				return NCV_ERR_ALLOC;
-			break;
+		// dest
+		tw, th, AV_PIX_FMT_RGB24,
+
+		// flags/alg
+		algorithm == 0 ? SWS_FAST_BILINEAR : algorithm,
+
+		NULL, NULL, 0
+	);
+
+	assert(sws);
+
+	uint8_t* dst = av_malloc(tw * 3 * th);
+	assert(dst);
+
+	uint8_t* dstSlice[3] = {dst, NULL, NULL};
+	int dstStride[3] = {tw * 3, 0, 0};
+
+	const uint8_t* srcSlice[3] = {(const uint8_t*)source->buffer, 0, 0};
+	int srcStride[3] = {source->width * 3, 0, 0};
+
+	sws_scale(sws, (const uint8_t * const*)&srcSlice, 
+		srcStride, 0, source->height, (uint8_t * const*)&dstSlice, dstStride);
+
+	// blit is completely within target, use faster copy
+	if(tx >= 0 && ty >= 0 && tx + tw < target->width &&
+		ty >= 0 && ty >= 0 && ty + tw < target->height){
+		uint8_t* px = target->rw_buffer + tx * 3;
+		uint8_t* dpx = dst;
+
+		for(int y = 0; y < th; y++){
+			memcpy(px, dpx, tw * 3);
+			px += target->width * 3;
+			dpx += tw * 3;
+		}
 	}
+
+	// blit is only partly within target (or entirely outside), test every pixel
+	else{
+		for(int y = 0; y < th; y++){
+			for(int x = 0; x < tw; x++){
+				if(
+					x + tx < target->width && x + tx >= 0 && 
+					y + ty < target->height && y + ty >= 0
+				){
+					uint8_t* d = target->rw_buffer + (x + tx + (y + ty) * target->width) * 3;
+					uint8_t* s = dst + (x + y * tw) * 3;
+					
+					*(d++) = *(s++);
+					*(d++) = *(s++);
+					*(d++) = *(s++);
+				}
+			}
+		}
+	}
+
+	av_free(dst);
+
+	sws_freeContext(sws);
 
 	return NCV_ERR_SUCCESS;
 }

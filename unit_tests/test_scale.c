@@ -60,7 +60,7 @@ bool do_scale(ncv_frame_flags alg, const char* path)
 
 bool test_scale()
 {
-	if(!do_scale(NCV_SA_NEAREST_NEIGHBOR, "image_scale_nn.tga"))
+	if(!do_scale(NCV_SA_POINT, "image_scale_nn.tga"))
 		return false;
 	
 	if(!do_scale(NCV_SA_BICUBIC, "image_scale_bicubic.tga"))
