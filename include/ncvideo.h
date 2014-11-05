@@ -90,6 +90,8 @@ NCV_APIENTRY long long ncv_frame_get_pts(const ncv_frame* frame);
 NCV_APIENTRY ncv_frame* ncv_frame_create(int width, int height);
 NCV_APIENTRY void ncv_frame_destroy(ncv_frame* frame);
 
+NCV_APIENTRY ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame);
+
 NCV_APIENTRY ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int x, int y, 
 	int width, int height, ncv_scaling_algorithm algorithm);
 

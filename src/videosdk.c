@@ -505,3 +505,18 @@ ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path)
 
 	return ret;
 }
+
+ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
+{
+	if(!frame->rw_buffer)
+		return NCV_ERR_TARGET_NOT_WRITABLE;
+
+	for(int i = 0; i < frame->width * frame->height * 3; i += 3)
+	{
+		uint8_t tmp = frame->rw_buffer[i];
+		frame->rw_buffer[i] = frame->rw_buffer[i+2];
+		frame->rw_buffer[i+2] = tmp;
+	}
+	
+	return NCV_ERR_SUCCESS;
+}
