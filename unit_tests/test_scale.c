@@ -7,22 +7,22 @@
 #include "tests.h"
 #include "ncvideo.h"
 
-bool do_scale(ncv_frame_flags alg, const char* path)
+ncv_frame* create_test_frame(int w, int h)
 {
-	ncv_frame* f = ncv_frame_create(320, 240);
+	ncv_frame* f = ncv_frame_create(w, h);
 	ASSERT_RET(f);
 
 	int width = ncv_frame_get_width(f);
-	ASSERT_RET(width == 320);
+	ASSERT_RET(width == w);
 	
 	int height = ncv_frame_get_height(f);
-	ASSERT_RET(height == 240);
+	ASSERT_RET(height = h);
 
 	uint8_t* buffer = ncv_frame_get_buffer_rw(f);
 
 	bool px = false;
-	for(int y = 0; y < 240; y++){
-		for(int x = 0; x < 320; x++){
+	for(int y = 0; y < h; y++){
+		for(int x = 0; x < w; x++){
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;
@@ -31,16 +31,27 @@ bool do_scale(ncv_frame_flags alg, const char* path)
 		px = !px;
 	}
 
+	return f;
+}
+
+bool do_scale(ncv_frame_flags alg, const char* path)
+{
+	ncv_frame* f = create_test_frame(320, 240);
+	ncv_frame* same_size = create_test_frame(640, 480);
+
 	ncv_frame* f2 = ncv_frame_create(640, 480);
 	ASSERT_RET(f);
 
-	width = ncv_frame_get_width(f2);
+	int width = ncv_frame_get_width(f2);
 	ASSERT_RET(width == 640);
 
-	height = ncv_frame_get_height(f2);
+	int height = ncv_frame_get_height(f2);
 	ASSERT_RET(height == 480);
 
-	ncv_error s = ncv_frame_scale(f, f2, 32, 32, 320 * 1.5, 240 * 1.5, alg);
+	ncv_error s = ncv_frame_scale(same_size, f2, 0, 0, 640, 480, alg);
+	ASSERT_RET(s == NCV_ERR_SUCCESS);
+
+	s = ncv_frame_scale(f, f2, 32, 32, 320 * 1.5, 240 * 1.5, alg);
 	ASSERT_RET(s == NCV_ERR_SUCCESS);
 	
 	s = ncv_frame_scale(f, f2, 64, 64, 320 * 2, 240 * 2, alg);

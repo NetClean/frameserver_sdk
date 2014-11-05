@@ -404,7 +404,7 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 	// blit is completely within target, use faster copy
 	if(tx >= 0 && ty >= 0 && tx + tw < target->width &&
-		ty >= 0 && ty >= 0 && ty + tw < target->height){
+		ty >= 0 && ty >= 0 && ty + th < target->height){
 		uint8_t* px = target->rw_buffer + tx * 3;
 		uint8_t* dpx = dst;
 
