@@ -342,7 +342,7 @@ long long ncv_frame_get_pts(const ncv_frame* frame)
 
 ncv_frame* ncv_frame_create(int width, int height)
 {
-	ncv_frame* ret = av_malloc(sizeof(ncv_frame));
+	ncv_frame* ret = calloc(1, sizeof(ncv_frame));
 
 	if(!ret)
 		return NULL;
@@ -366,6 +366,7 @@ void ncv_frame_destroy(ncv_frame* frame)
 {
 	if(frame->rw_buffer)
 		av_free(frame->rw_buffer);
+
 	free(frame);
 }
 
