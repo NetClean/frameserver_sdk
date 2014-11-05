@@ -402,6 +402,7 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 	sws_scale(sws, (const uint8_t * const*)&srcSlice, 
 		srcStride, 0, source->height, (uint8_t * const*)&dstSlice, dstStride);
 
+#if 0
 	// blit is completely within target, use faster copy
 	if(tx >= 0 && ty >= 0 && tx + tw < target->width &&
 		ty >= 0 && ty >= 0 && ty + th < target->height){
@@ -414,6 +415,8 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 			dpx += tw * 3;
 		}
 	}
+#endif
+	if(0){}
 
 	// blit is only partly within target (or entirely outside), test every pixel
 	else{
