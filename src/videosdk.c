@@ -136,8 +136,11 @@ cleanup:
 
 void ncv_ctx_destroy(ncv_context** ctx)
 {
-	shmipc_destroy(&(*ctx)->read_queue);
-	shmipc_destroy(&(*ctx)->write_queue);
+	if((*ctx)->read_queue)
+		shmipc_destroy(&(*ctx)->read_queue);
+	
+	if((*ctx)->write_queue)
+		shmipc_destroy(&(*ctx)->write_queue);
 
 	free(*ctx);
 	*ctx = NULL;
