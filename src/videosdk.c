@@ -9,9 +9,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <libshmipc.h>
+#include <inttypes.h>
 
 #define NCV_ERROR_MSG_SIZE 2048
+#define NCV_HEADER_SIZE 4096
+#define NCV_PADDING_SIZE 4096
 
+#pragma pack(4)
 typedef struct __attribute__ ((packed)) shm_vid_info {
 	uint32_t reserved;
 	uint32_t width;
@@ -20,12 +24,21 @@ typedef struct __attribute__ ((packed)) shm_vid_info {
 	int64_t byte_pos;
 	int64_t pts;
 	int64_t dts;
-
+	
 	uint32_t tot_frames;
 	float fps;
-	bool fps_guessed;
-} shm_vid_info;
+	char fps_guessed;
 
+	double pts_seconds;
+	double dts_seconds;
+
+	char has_audio;
+	int orig_sample_rate;
+	int channels;
+	int num_samples;
+	char sample_format_str[16];
+} shm_vid_info;
+#pragma pack() // restore packing
 
 struct ncv_frame
 {
@@ -34,9 +47,16 @@ struct ncv_frame
 	const uint8_t* buffer;
 	uint8_t* rw_buffer;
 
+	int num_samples;
+	const float* audio_buffer;
+	float* audio_buffer_rw;
+
 	int64_t byte_pos;
 	int64_t pts;
 	int64_t dts;
+
+	double pts_seconds;
+	double dts_seconds;
 };
 
 struct ncv_context
@@ -162,11 +182,29 @@ ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed)
 {
 	*out_fps = ctx->info->fps;
-	*out_guessed = (int)ctx->info->fps_guessed;
+	*out_guessed = (int)ctx->info->fps_guessed ? true : false;
 	return NCV_ERR_SUCCESS;
 }
 
+int ncv_get_width(ncv_context* ctx)
+{
+	return ctx->info->width;
+}
 
+int ncv_get_height(ncv_context* ctx)
+{
+	return ctx->info->height;
+}
+
+int ncv_get_audio_present(ncv_context* ctx)
+{
+	return ctx->info->has_audio;
+}
+
+int ncv_get_audio_channels(ncv_context* ctx)
+{
+	return ctx->info->channels;
+}
 
 NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const ncv_frame** frame)
 {
@@ -205,14 +243,22 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		return NCV_ERR_HOST_END_SESSION;
 	
 	if(!strcmp(message, "newframe")){
+		memset(&ctx->frame, 0, sizeof(ncv_frame));
+
 		ctx->frame.width = ctx->info->width;
 		ctx->frame.height = ctx->info->height;
 		ctx->frame.flags = ctx->info->flags;
 		ctx->frame.byte_pos = ctx->info->byte_pos;
 		ctx->frame.dts = ctx->info->dts;
 		ctx->frame.pts = ctx->info->pts;
-		
-		ctx->frame.buffer = ((uint8_t*)ctx->shm_area + 4096);
+		ctx->frame.dts_seconds = ctx->info->dts;
+		ctx->frame.pts_seconds = ctx->info->pts;
+
+		int frame_buffer_size = ctx->frame.width * ctx->frame.height * 3;
+
+		ctx->frame.buffer = ((uint8_t*)ctx->shm_area + NCV_HEADER_SIZE);
+		ctx->frame.audio_buffer = (const float*)(((uint8_t*)ctx->shm_area) + NCV_HEADER_SIZE + frame_buffer_size + NCV_PADDING_SIZE);
+		ctx->frame.num_samples = ctx->info->num_samples;
 
 		*frame = &ctx->frame;
 
@@ -221,6 +267,21 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 
 	NCV_PRINT_ERROR(ctx, "unexpected message from frameserver: type: '%s', msg: '%s'", type, message);
 	return NCV_ERR_UNKNOWN_MSG;
+}
+
+const float* ncv_frame_get_audio_buffer(const ncv_frame* frame)
+{
+	return frame->audio_buffer;
+}
+
+float* ncv_frame_get_audio_buffer_rw(const ncv_frame* frame)
+{
+	return frame->audio_buffer_rw;
+}
+
+int ncv_frame_get_num_samples(const ncv_frame* frame)
+{
+	return frame->num_samples;
 }
 
 ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size)
@@ -341,6 +402,16 @@ long long ncv_frame_get_dts(const ncv_frame* frame)
 long long ncv_frame_get_pts(const ncv_frame* frame)
 {
 	return frame->pts;
+}
+
+double ncv_frame_get_dts_seconds(const ncv_frame* frame)
+{
+	return frame->dts_seconds;
+}
+
+double ncv_frame_get_pts_seconds(const ncv_frame* frame)
+{
+	return frame->pts_seconds;
 }
 
 ncv_frame* ncv_frame_create(int width, int height)

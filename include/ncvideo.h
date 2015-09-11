@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #define NCV_INFINITE -1
+#define NCV_SAMPLE_RATE 44100
 
 typedef enum {
 	NCV_ERR_SUCCESS = 0,
@@ -75,6 +76,10 @@ NCV_APIENTRY ncv_error ncv_get_num_frames(ncv_context* ctx, int* out_num_frames)
 NCV_APIENTRY ncv_error ncv_get_frame_rate(ncv_context* ctx, float* out_fps, int* out_guessed);
 NCV_APIENTRY ncv_error ncv_report_error(ncv_context* ctx, int err_code, const char* err_str, size_t size);
 NCV_APIENTRY const char* ncv_get_last_error_msg(ncv_context* ctx);
+NCV_APIENTRY int ncv_get_width(ncv_context* ctx);
+NCV_APIENTRY int ncv_get_height(ncv_context* ctx);
+NCV_APIENTRY int ncv_get_audio_present(ncv_context* ctx);
+NCV_APIENTRY int ncv_get_audio_channels(ncv_context* ctx);
 
 NCV_APIENTRY ncv_error ncv_report_finished(ncv_context* ctx, int timeout);
 
@@ -86,6 +91,12 @@ NCV_APIENTRY const void* ncv_frame_get_buffer(const ncv_frame* frame);
 NCV_APIENTRY void* ncv_frame_get_buffer_rw(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_dts(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_pts(const ncv_frame* frame);
+NCV_APIENTRY double ncv_frame_get_dts_seconds(const ncv_frame* frame);
+NCV_APIENTRY double ncv_frame_get_pts_seconds(const ncv_frame* frame);
+
+NCV_APIENTRY const float* ncv_frame_get_audio_buffer(const ncv_frame* frame);
+NCV_APIENTRY float* ncv_frame_get_audio_buffer_rw(const ncv_frame* frame);
+NCV_APIENTRY int ncv_frame_get_num_samples(const ncv_frame* frame);
 
 NCV_APIENTRY ncv_frame* ncv_frame_create(int width, int height);
 NCV_APIENTRY void ncv_frame_destroy(ncv_frame* frame);

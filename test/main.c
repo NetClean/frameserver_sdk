@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #define ASSERT_MSG(_v, _ctx, ...) if(!(_v)){ char _tb[512]; int _el = snprintf(_tb, sizeof(_tb), __VA_ARGS__); \
 	puts(_tb); if(_ctx){ ncv_report_error(_ctx, 1, _tb, _el); } exit(1); }
@@ -31,10 +32,35 @@ int main(int argc, char** argv)
 	ncv_get_args(ctx, &num_args, &args);
 	int i = 0;
 
+	bool audio_present = ncv_get_audio_present(ctx);
+
+	printf("audio present: %s\n", audio_present ? "yes" : "no");
+
+	FILE* af = NULL;
+
+	if(audio_present){
+		af = fopen("audio.raw", "wb");
+		ASSERT_MSG(af, ctx, "could not open file for audio output");
+	}
+
 	while((err = ncv_wait_for_frame(ctx, NCV_INFINITE, &frame)) == NCV_ERR_SUCCESS){
 		printf("frame, %d x %d at pos: %" PRId64 ", flags: %u!\n", ncv_frame_get_width(frame), 
 			ncv_frame_get_height(frame), ncv_frame_get_byte_pos(frame), ncv_frame_get_flags(frame));
+
+		if(audio_present){
+			int channels = ncv_get_audio_channels(ctx);
+			int samples = ncv_frame_get_num_samples(frame);
+			const void* audio_buffer = ncv_frame_get_audio_buffer(frame);
+			printf("  %d samples, %d channels\n", samples, channels);
+
+			fwrite(audio_buffer, channels * sizeof(float), samples, af);
+		}
+
 		i++;
+	}
+
+	if(af){
+		fclose(af);
 	}
 
 	char result[512];
