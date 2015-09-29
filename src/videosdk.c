@@ -251,8 +251,8 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		ctx->frame.byte_pos = ctx->info->byte_pos;
 		ctx->frame.dts = ctx->info->dts;
 		ctx->frame.pts = ctx->info->pts;
-		ctx->frame.dts_seconds = ctx->info->dts;
-		ctx->frame.pts_seconds = ctx->info->pts;
+		ctx->frame.dts_seconds = ctx->info->dts_seconds;
+		ctx->frame.pts_seconds = ctx->info->pts_seconds;
 
 		int frame_buffer_size = ctx->frame.width * ctx->frame.height * 3;
 
