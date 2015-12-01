@@ -23,6 +23,7 @@ bool test_write_tga()
 	bool px = false;
 	for(int y = 0; y < 240; y++){
 		for(int x = 0; x < 320; x++){
+			*(buffer++) = 0;
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;

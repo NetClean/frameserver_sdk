@@ -34,11 +34,12 @@ ncv_frame* load_tga(const char* path)
 			char buffer[3];
 			fread(buffer, 1, 3, f);
 
-			uint8_t* px = frame_buffer + (x + y * width) * 3;
+			uint8_t* px = frame_buffer + (x + y * width) * 4;
 			
-      *(px++) = buffer[2];
+      *(px++) = 0;
+      *(px++) = buffer[0];
       *(px++) = buffer[1];
-      *(px)   = buffer[0];
+      *(px)   = buffer[2];
     }
   }
 
@@ -61,6 +62,7 @@ ncv_frame* create_test_frame(int w, int h)
 	bool px = false;
 	for(int y = 0; y < h; y++){
 		for(int x = 0; x < w; x++){
+			*(buffer++) = 0;
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;
 			*(buffer++) = px ? 255 : 0;
@@ -72,18 +74,10 @@ ncv_frame* create_test_frame(int w, int h)
 	return f;
 }
 
-bool scole()
-{
-	ncv_frame* frame = load_tga("frame.tga");
-	ncv_frame* target = ncv_frame_create(1280, 960);
-	ncv_frame_scale(frame, target, 0, 0, 320, 240, NCV_SA_RECOMMENDED);
-	return true;
-}
-
 bool do_scale(ncv_frame_flags alg, const char* path)
 {
-	ncv_frame* f = create_test_frame(320, 240);
-	//ncv_frame* f = load_tga("frame.tga");
+	//ncv_frame* f = create_test_frame(320, 240);
+	ncv_frame* f = load_tga("frame.tga");
 	ncv_frame* same_size = create_test_frame(640, 480);
 
 	ncv_frame* f2 = ncv_frame_create(640, 480);
@@ -118,8 +112,6 @@ bool do_scale(ncv_frame_flags alg, const char* path)
 
 bool test_scale()
 {
-	return scole();
-
 	if(!do_scale(NCV_SA_POINT, "image_scale_nn.tga"))
 		return false;
 	

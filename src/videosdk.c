@@ -14,6 +14,7 @@
 #define NCV_ERROR_MSG_SIZE 2048
 #define NCV_HEADER_SIZE 4096
 #define NCV_PADDING_SIZE 4096
+#define NCV_BPP 4
 
 #pragma pack(4)
 typedef struct __attribute__ ((packed)) shm_vid_info {
@@ -254,7 +255,7 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		ctx->frame.dts_seconds = ctx->info->dts_seconds;
 		ctx->frame.pts_seconds = ctx->info->pts_seconds;
 
-		int frame_buffer_size = ctx->frame.width * ctx->frame.height * 3;
+		int frame_buffer_size = ctx->frame.width * ctx->frame.height * NCV_BPP;
 
 		ctx->frame.buffer = ((uint8_t*)ctx->shm_area + NCV_HEADER_SIZE);
 		ctx->frame.audio_buffer = (const float*)(((uint8_t*)ctx->shm_area) + NCV_HEADER_SIZE + frame_buffer_size + NCV_PADDING_SIZE);
@@ -421,7 +422,7 @@ ncv_frame* ncv_frame_create(int width, int height)
 	if(!ret)
 		return NULL;
 
-	ret->rw_buffer = av_mallocz(width * height * 3); 
+	ret->rw_buffer = av_mallocz(width * height * NCV_BPP); 
 
 	if(!ret->rw_buffer){
 		free(ret);
@@ -451,10 +452,10 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 	struct SwsContext* sws = sws_getContext(
 		// source
-		source->width, source->height, AV_PIX_FMT_RGB24,
+		source->width, source->height, AV_PIX_FMT_RGB32,
 
 		// dest
-		tw, th, AV_PIX_FMT_RGB24,
+		tw, th, AV_PIX_FMT_RGB32,
 
 		// flags/alg
 		algorithm == 0 ? SWS_FAST_BILINEAR : algorithm,
@@ -464,14 +465,14 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 	assert(sws);
 
-	uint8_t* dst = av_malloc(tw * 3 * th);
+	uint8_t* dst = av_malloc(tw * NCV_BPP * th);
 	assert(dst);
 
 	uint8_t* dstSlice[3] = {dst, NULL, NULL};
-	int dstStride[3] = {tw * 3, 0, 0};
+	int dstStride[3] = {tw * NCV_BPP, 0, 0};
 
 	const uint8_t* srcSlice[3] = {(const uint8_t*)source->buffer, 0, 0};
-	int srcStride[3] = {source->width * 3, 0, 0};
+	int srcStride[3] = {source->width * NCV_BPP, 0, 0};
 
 	sws_scale(sws, (const uint8_t * const*)&srcSlice, 
 		srcStride, 0, source->height, (uint8_t * const*)&dstSlice, dstStride);
@@ -480,16 +481,17 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 	// blit is completely within target, use faster copy
 	if(tx >= 0 && ty >= 0 && tx + tw < target->width &&
 		ty >= 0 && ty >= 0 && ty + th < target->height){
-		uint8_t* px = target->rw_buffer + tx * 3;
+		uint8_t* px = target->rw_buffer + tx * NCV_BPP;
 		uint8_t* dpx = dst;
 
 		for(int y = 0; y < th; y++){
-			memcpy(px, dpx, tw * 3);
-			px += target->width * 3;
-			dpx += tw * 3;
+			memcpy(px, dpx, tw * NCV_BPP);
+			px += target->width * NCV_BPP;
+			dpx += tw * NCV_BPP;
 		}
 	}
 #endif
+
 	if(0){}
 
 	// blit is only partly within target (or entirely outside), test every pixel
@@ -500,9 +502,10 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 					x + tx < target->width && x + tx >= 0 && 
 					y + ty < target->height && y + ty >= 0
 				){
-					uint8_t* d = target->rw_buffer + (x + tx + (y + ty) * target->width) * 3;
-					uint8_t* s = dst + (x + y * tw) * 3;
+					uint8_t* d = target->rw_buffer + (x + tx + (y + ty) * target->width) * NCV_BPP;
+					uint8_t* s = dst + (x + y * tw) * NCV_BPP;
 					
+					*(d++) = *(s++);
 					*(d++) = *(s++);
 					*(d++) = *(s++);
 					*(d++) = *(s++);
@@ -522,7 +525,7 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
 {
-  char* buffer = calloc(1, frame->width * frame->height * 3 + TGA_HEADER_SIZE);
+  char* buffer = calloc(1, frame->width * frame->height * NCV_BPP + TGA_HEADER_SIZE);
   if(!buffer)
     return 0;
 
@@ -546,11 +549,11 @@ int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
 
   for(int y = frame->height - 1; y >= 0; y--){
     for(int x = 0; x < frame->width; x++){
-      int i = (x + y * frame->width) * 3;
+      int i = (x + y * frame->width) * NCV_BPP;
 
-      *(buffer++) = ((const char*)frame->buffer)[i+2];
       *(buffer++) = ((const char*)frame->buffer)[i+1];
-      *(buffer++) = ((const char*)frame->buffer)[i+0];
+      *(buffer++) = ((const char*)frame->buffer)[i+2];
+      *(buffer++) = ((const char*)frame->buffer)[i+3];
     }
   }
 
@@ -559,7 +562,6 @@ int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
 
 ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path)
 {
-	
 	char* buffer;
 	int size = ncv_frame_save_tga_mem(frame, &buffer);
 
@@ -585,11 +587,11 @@ ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
 	if(!frame->rw_buffer)
 		return NCV_ERR_TARGET_NOT_WRITABLE;
 
-	for(int i = 0; i < frame->width * frame->height * 3; i += 3)
+	for(int i = 0; i < frame->width * frame->height * NCV_BPP; i += NCV_BPP)
 	{
-		uint8_t tmp = frame->rw_buffer[i];
-		frame->rw_buffer[i] = frame->rw_buffer[i+2];
-		frame->rw_buffer[i+2] = tmp;
+		uint8_t tmp = frame->rw_buffer[i+1];
+		frame->rw_buffer[i] = frame->rw_buffer[i+3];
+		frame->rw_buffer[i+3] = tmp;
 	}
 	
 	return NCV_ERR_SUCCESS;
