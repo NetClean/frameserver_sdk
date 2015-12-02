@@ -36,10 +36,10 @@ ncv_frame* load_tga(const char* path)
 
 			uint8_t* px = frame_buffer + (x + y * width) * 4;
 			
-      *(px++) = 0;
-      *(px++) = buffer[0];
+      *(px++) = buffer[2];
       *(px++) = buffer[1];
-      *(px)   = buffer[2];
+      *(px++) = buffer[0];
+      *(px) = 0;
     }
   }
 
@@ -64,8 +64,8 @@ ncv_frame* create_test_frame(int w, int h)
 		for(int x = 0; x < w; x++){
 			*(buffer++) = 0;
 			*(buffer++) = px ? 255 : 0;
-			*(buffer++) = px ? 255 : 0;
-			*(buffer++) = px ? 255 : 0;
+			*(buffer++) = 0;
+			*(buffer++) = 0;
 			px = !px;				
 		}
 		px = !px;

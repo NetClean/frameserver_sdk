@@ -525,7 +525,7 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
 {
-  char* buffer = calloc(1, frame->width * frame->height * NCV_BPP + TGA_HEADER_SIZE);
+  char* buffer = calloc(1, frame->width * frame->height * 3 + TGA_HEADER_SIZE);
   if(!buffer)
     return 0;
 
@@ -551,9 +551,9 @@ int ncv_frame_save_tga_mem(const ncv_frame* frame, char** out_buffer)
     for(int x = 0; x < frame->width; x++){
       int i = (x + y * frame->width) * NCV_BPP;
 
+      *(buffer++) = ((const char*)frame->buffer)[i+0];
       *(buffer++) = ((const char*)frame->buffer)[i+1];
       *(buffer++) = ((const char*)frame->buffer)[i+2];
-      *(buffer++) = ((const char*)frame->buffer)[i+3];
     }
   }
 
@@ -584,6 +584,7 @@ ncv_error ncv_frame_save_tga_file(const ncv_frame* frame, const char* path)
 
 ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
 {
+#if 0
 	if(!frame->rw_buffer)
 		return NCV_ERR_TARGET_NOT_WRITABLE;
 
@@ -593,6 +594,7 @@ ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
 		frame->rw_buffer[i] = frame->rw_buffer[i+3];
 		frame->rw_buffer[i+3] = tmp;
 	}
+#endif
 	
 	return NCV_ERR_SUCCESS;
 }

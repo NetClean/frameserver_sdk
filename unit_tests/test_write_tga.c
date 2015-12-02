@@ -25,8 +25,8 @@ bool test_write_tga()
 		for(int x = 0; x < 320; x++){
 			*(buffer++) = 0;
 			*(buffer++) = px ? 255 : 0;
-			*(buffer++) = px ? 255 : 0;
-			*(buffer++) = px ? 255 : 0;
+			*(buffer++) = 0;
+			*(buffer++) = 0;
 			px = !px;				
 		}
 		px = !px;
