@@ -452,10 +452,10 @@ ncv_error ncv_frame_scale(const ncv_frame* source, ncv_frame* target, int tx, in
 
 	struct SwsContext* sws = sws_getContext(
 		// source
-		source->width, source->height, AV_PIX_FMT_RGB32,
+		source->width, source->height, AV_PIX_FMT_BGRA,
 
 		// dest
-		tw, th, AV_PIX_FMT_RGB32,
+		tw, th, AV_PIX_FMT_BGRA,
 
 		// flags/alg
 		algorithm == 0 ? SWS_FAST_BILINEAR : algorithm,
