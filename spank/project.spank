@@ -37,11 +37,11 @@ target_platform  mingw32
 
 [debug_force_dynamic64: debug64]
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
-target_platform  mingw32
+target_platform  mingw64
 
 [release_force_dynamic64: release64]
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
-target_platform  mingw32
+target_platform  mingw64
 
 [*debug64: common]
 cflags           gstabs
