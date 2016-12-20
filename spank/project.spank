@@ -16,19 +16,40 @@ inst_copy	       pkg-config/$(name).pc $(inst_prefix)lib/pkgconfig/$(name).pc
 
 lib-static       libswscale
 
-target_platform  mingw32
-
 [debug_force_dynamic: debug]
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
+target_platform  mingw32
 
 [release_force_dynamic: release]
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
+target_platform  mingw32
 
 [*debug: common]
 cflags           gstabs
 depends          libshmipc
+target_platform  mingw32
 
 [release: common]
 cflags           O3
 depends          libshmipc
 postbuildscript  "$(host_dash)strip $(target)"
+target_platform  mingw32
+
+[debug_force_dynamic64: debug64]
+dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
+target_platform  mingw32
+
+[release_force_dynamic64: release64]
+dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
+target_platform  mingw32
+
+[*debug64: common]
+cflags           gstabs
+depends          libshmipc:debug64
+target_platform  mingw64
+
+[release64: common]
+cflags           O3
+depends          libshmipc:release64
+postbuildscript  "$(host_dash)strip $(target)"
+target_platform  mingw64
