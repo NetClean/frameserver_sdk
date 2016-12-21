@@ -26,14 +26,14 @@ target_platform  mingw32
 
 [*debug: common]
 cflags           gstabs
-depends          libshmipc
 target_platform  mingw32
+depends          libshmipc:debug
 
 [release: common]
 cflags           O3
-depends          libshmipc
 postbuildscript  "$(host_dash)strip $(target)"
 target_platform  mingw32
+depends          libshmipc:release
 
 [debug_force_dynamic64: debug64]
 dep_ldflags      "Wl,-Bdynamic -L'$(projectpath)' -l$(name) -Wl,-Bstatic"
