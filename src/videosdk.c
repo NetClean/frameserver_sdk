@@ -25,7 +25,7 @@ typedef struct __attribute__ ((packed)) shm_vid_info {
 	int64_t byte_pos;
 	int64_t pts;
 	int64_t dts;
-	
+
 	uint32_t tot_frames;
 	float fps;
 	char fps_guessed;
@@ -34,10 +34,15 @@ typedef struct __attribute__ ((packed)) shm_vid_info {
 	double dts_seconds;
 
 	char has_audio;
-	int orig_sample_rate;
-	int channels;
-	int num_samples;
+	int32_t orig_sample_rate;
+	int32_t channels;
+	int32_t num_samples;
 	char sample_format_str[16];
+	char has_video;
+
+	int32_t api_version_major;
+	int32_t api_version_minor;
+	int32_t api_version_patch;
 } shm_vid_info;
 #pragma pack() // restore packing
 
@@ -58,6 +63,8 @@ struct ncv_frame
 
 	double pts_seconds;
 	double dts_seconds;
+
+	int has_video;
 };
 
 struct ncv_context
@@ -254,6 +261,7 @@ NCV_APIENTRY ncv_error ncv_wait_for_frame(ncv_context* ctx, int timeout, const n
 		ctx->frame.pts = ctx->info->pts;
 		ctx->frame.dts_seconds = ctx->info->dts_seconds;
 		ctx->frame.pts_seconds = ctx->info->pts_seconds;
+		ctx->frame.has_video = ctx->info->has_video;
 
 		int frame_buffer_size = ctx->frame.width * ctx->frame.height * NCV_BPP;
 
@@ -413,6 +421,11 @@ double ncv_frame_get_dts_seconds(const ncv_frame* frame)
 double ncv_frame_get_pts_seconds(const ncv_frame* frame)
 {
 	return frame->pts_seconds;
+}
+
+int ncv_frame_get_video_present(const ncv_frame* frame)
+{
+	return frame->has_video;
 }
 
 ncv_frame* ncv_frame_create(int width, int height)
@@ -597,4 +610,28 @@ ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
 #endif
 	
 	return NCV_ERR_SUCCESS;
+}
+
+void ncv_get_api_version(ncv_context* ctx, int* out_major, int* out_minor, int* out_patch)
+{
+	*out_major = (int)ctx->info->api_version_major;
+	*out_minor = (int)ctx->info->api_version_minor;
+	*out_patch = (int)ctx->info->api_version_patch;
+}
+
+int ncv_require_api_version(ncv_context* ctx, int major, int minor, int patch)
+{
+	int curr_major, curr_minor, curr_patch;
+	ncv_get_api_version(ctx, &curr_minor, &curr_major, &curr_patch);
+
+	if(curr_major < major)
+		return 0;
+
+	if(curr_minor < minor)
+		return 0;
+
+	if(curr_patch < patch)
+		return 0;
+	
+	return 1;
 }

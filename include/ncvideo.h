@@ -81,6 +81,9 @@ NCV_APIENTRY int ncv_get_height(ncv_context* ctx);
 NCV_APIENTRY int ncv_get_audio_present(ncv_context* ctx);
 NCV_APIENTRY int ncv_get_audio_channels(ncv_context* ctx);
 
+NCV_APIENTRY void ncv_get_api_version(ncv_context* ctx, int* out_major, int* out_minor, int* out_patch);
+NCV_APIENTRY int ncv_require_api_version(ncv_context* ctx, int major, int minor, int patch);
+
 NCV_APIENTRY ncv_error ncv_report_finished(ncv_context* ctx, int timeout);
 
 NCV_APIENTRY int ncv_frame_get_width(const ncv_frame* frame);
@@ -93,6 +96,7 @@ NCV_APIENTRY long long ncv_frame_get_dts(const ncv_frame* frame);
 NCV_APIENTRY long long ncv_frame_get_pts(const ncv_frame* frame);
 NCV_APIENTRY double ncv_frame_get_dts_seconds(const ncv_frame* frame);
 NCV_APIENTRY double ncv_frame_get_pts_seconds(const ncv_frame* frame);
+NCV_APIENTRY int ncv_frame_get_video_present(const ncv_frame* frame);
 
 NCV_APIENTRY const float* ncv_frame_get_audio_buffer(const ncv_frame* frame);
 NCV_APIENTRY float* ncv_frame_get_audio_buffer_rw(const ncv_frame* frame);
