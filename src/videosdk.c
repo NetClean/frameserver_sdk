@@ -622,7 +622,7 @@ void ncv_get_api_version(ncv_context* ctx, int* out_major, int* out_minor, int* 
 int ncv_require_api_version(ncv_context* ctx, int major, int minor, int patch)
 {
 	int curr_major, curr_minor, curr_patch;
-	ncv_get_api_version(ctx, &curr_minor, &curr_major, &curr_patch);
+	ncv_get_api_version(ctx, &curr_major, &curr_minor, &curr_patch);
 
 	if(curr_major != major){
 		// require same major version
