@@ -624,14 +624,23 @@ int ncv_require_api_version(ncv_context* ctx, int major, int minor, int patch)
 	int curr_major, curr_minor, curr_patch;
 	ncv_get_api_version(ctx, &curr_minor, &curr_major, &curr_patch);
 
-	if(curr_major < major)
+	if(curr_major != major){
+		// require same major version
 		return 0;
+	}
 
-	if(curr_minor < minor)
+	if(curr_minor == minor){
+		// check patch version if the required minor version matches current
+		if(curr_patch < patch){
+			// fail is patch is too low
+			return 0;
+		}
+	}
+	else if(curr_minor < minor)
+	{
+		// fail if minor is too low
 		return 0;
-
-	if(curr_patch < patch)
-		return 0;
+	}
 	
 	return 1;
 }
