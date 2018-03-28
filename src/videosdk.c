@@ -614,9 +614,9 @@ ncv_error ncv_frame_flip_rgb_order(ncv_frame* frame)
 
 void ncv_get_api_version(ncv_context* ctx, int* out_major, int* out_minor, int* out_patch)
 {
-	*out_major = (int)ctx->info->api_version_major;
-	*out_minor = (int)ctx->info->api_version_minor;
-	*out_patch = (int)ctx->info->api_version_patch;
+	*out_major = (int)(ctx->info->api_version_major);
+	*out_minor = (int)(ctx->info->api_version_minor);
+	*out_patch = (int)(ctx->info->api_version_patch);
 }
 
 int ncv_require_api_version(ncv_context* ctx, int major, int minor, int patch)
