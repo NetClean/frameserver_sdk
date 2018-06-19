@@ -47,9 +47,11 @@ target_platform  mingw64
 cflags           gstabs
 depends          libshmipc:debug64
 target_platform  mingw64
+target           $(target_name)64$(target_suffix)
 
 [release64: common]
 cflags           O3
 depends          libshmipc:release64
 postbuildscript  "$(host_dash)strip $(target)"
 target_platform  mingw64
+target           $(target_name)64$(target_suffix)
